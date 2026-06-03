@@ -169,10 +169,11 @@ def plot_metric(params, metric, treatment_order, out_dir):
 
 def export_metric_csvs(params, treatment_order, metrics, out_dir):
     for metric in metrics:
-        export_df = pd.DataFrame()
+        cols = []
         for treatment in treatment_order:
             vals = params.loc[params["Treatment"] == treatment, metric].reset_index(drop=True)
-            export_df[treatment] = vals
+            cols.append(vals.rename(treatment))
+        export_df = pd.concat(cols, axis=1)
         export_df.to_csv(out_dir / f"{metric}.csv", index=False)
 
 
@@ -232,7 +233,7 @@ def analyze(input_path, baseline=(1,3), oligomycin=(4,6), fccp=(7,9), rotaa=(10,
 
     run_analysis(
         df_ocr, df_ecar, treatment_order,
-        out_dir=base_dir / "normalised",
+        out_dir=base_dir / "analysis/normalised",
         BASELINE_WINDOW=BASELINE_WINDOW, OLIGOMYCIN_WINDOW=OLIGOMYCIN_WINDOW,
         FCCP_WINDOW=FCCP_WINDOW, ROTAA_WINDOW=ROTAA_WINDOW,
     )
@@ -245,14 +246,14 @@ def analyze(input_path, baseline=(1,3), oligomycin=(4,6), fccp=(7,9), rotaa=(10,
 
     run_analysis(
         df_ocr_raw, df_ecar_raw, treatment_order_raw,
-        out_dir=base_dir / "raw",
+        out_dir=base_dir / "analysis/raw",
         BASELINE_WINDOW=BASELINE_WINDOW, OLIGOMYCIN_WINDOW=OLIGOMYCIN_WINDOW,
         FCCP_WINDOW=FCCP_WINDOW, ROTAA_WINDOW=ROTAA_WINDOW,
     )
 
     print("\n✓ Analysis complete.")
-    print(f"  Normalised outputs: {base_dir}/normalised/")
-    print(f"  Raw outputs:        {base_dir}/raw/")
+    print(f"  Normalised outputs: {base_dir}/analysis/normalised/")
+    print(f"  Raw outputs:        {base_dir}/analysis/raw/")
 
 
 if __name__ == "__main__":
