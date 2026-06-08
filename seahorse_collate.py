@@ -151,12 +151,23 @@ def collate_timeseries(directory, mode="normalised"):
         wb_path = prepared_files[0]
         print(f"  Loading: {wb_path}")
 
+        # Inspect available sheets for diagnostics
+        try:
+            import openpyxl
+            wb_inspect = openpyxl.load_workbook(wb_path, read_only=True)
+            available_sheets = wb_inspect.sheetnames
+            wb_inspect.close()
+        except Exception:
+            available_sheets = []
+
         try:
             ocr_conds, ocr_time = _timeseries_for_sheet(wb_path, ocr_sheet)
             if ref_ocr_time is None and ocr_time is not None:
                 ref_ocr_time = ocr_time
         except Exception as e:
-            print(f"    Could not read {ocr_sheet}: {e}")
+            print(f"    Could not read sheet '{ocr_sheet}': {e}")
+            if available_sheets:
+                print(f"    Available sheets: {available_sheets}")
             ocr_conds = {}
 
         try:
@@ -164,7 +175,9 @@ def collate_timeseries(directory, mode="normalised"):
             if ref_ecar_time is None and ecar_time is not None:
                 ref_ecar_time = ecar_time
         except Exception as e:
-            print(f"    Could not read {ecar_sheet}: {e}")
+            print(f"    Could not read sheet '{ecar_sheet}': {e}")
+            if available_sheets:
+                print(f"    Available sheets: {available_sheets}")
             ecar_conds = {}
 
         # Assign _N label per condition (each condition gets its own counter)
@@ -181,7 +194,9 @@ def collate_timeseries(directory, mode="normalised"):
             ecar_data.setdefault(cond, {})[f"_N{n}"] = reps
 
     if not ocr_data and not ecar_data:
-        print("No timeseries data found.")
+        print(f"No timeseries data found. Check that:")
+        print(f"  1. The NM 48 Hours folder has N* subfolders containing *_prepared.xlsx files.")
+        print(f"  2. Those workbooks contain sheets named '{ocr_sheet}' and '{ecar_sheet}'.")
         return
 
     out_dir = base / "collated" / mode / "timeseries"
