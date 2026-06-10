@@ -17,6 +17,13 @@ Outputs (in subdirectories alongside the input file):
     <stem>_summary.csv
     seahorse_metric_plots/
     seahorse_metric_csv/
+
+Basal OCR and ECAR are taken from the second-to-last cycle of the baseline
+window (iloc[-2]) to avoid the first-cycle equilibration artefact and to
+provide one cycle of buffer from the oligomycin injection.
+All other windows (oligomycin, FCCP, rotenone/AA) continue to use the
+full-window mean (or max for FCCP) as these phases are pharmacologically
+clamped and do not exhibit the same drift.
 """
 
 import sys
@@ -51,7 +58,9 @@ def calculate_ocr_metrics(df, BASELINE_WINDOW, OLIGOMYCIN_WINDOW, FCCP_WINDOW, R
     for col in rep_cols:
         sub = df[["Cycle", col]].dropna()
 
-        basal_ocr = window_vals(sub, col, BASELINE_WINDOW).mean()
+        # Use second-to-last cycle of baseline window as the pre-injection
+        # reference point, avoiding early equilibration and injection artefact.
+        basal_ocr = window_vals(sub, col, BASELINE_WINDOW).iloc[-2]
         olig_ocr  = window_vals(sub, col, OLIGOMYCIN_WINDOW).mean()
         fccp_ocr  = window_vals(sub, col, FCCP_WINDOW).max()
         rotaa_ocr = window_vals(sub, col, ROTAA_WINDOW).mean()
@@ -88,7 +97,10 @@ def calculate_ecar_metrics(df, BASELINE_WINDOW, OLIGOMYCIN_WINDOW):
 
     for col in rep_cols:
         sub = df[["Cycle", col]].dropna()
-        basal_ecar = window_vals(sub, col, BASELINE_WINDOW).mean()
+
+        # Use second-to-last cycle of baseline window as the pre-injection
+        # reference point, avoiding early equilibration and injection artefact.
+        basal_ecar = window_vals(sub, col, BASELINE_WINDOW).iloc[-2]
         olig_ecar  = window_vals(sub, col, OLIGOMYCIN_WINDOW).mean()
 
         treatment = clean_treatment_name(col.rsplit("_rep", 1)[0])
@@ -113,7 +125,7 @@ def get_treatment_order(df):
 
 
 METRIC_LABELS = {
-    "Basal_OCR":                     ("Basal OCR",                     "OCR under baseline conditions prior to drug additions."),
+    "Basal_OCR":                     ("Basal OCR",                     "OCR at second-to-last baseline cycle (pre-injection reference)."),
     "Oligomycin_OCR":                ("Oligomycin OCR",                "Residual OCR after ATP synthase inhibition."),
     "FCCP_OCR":                      ("FCCP OCR",                      "Peak OCR under uncoupled conditions."),
     "RotAA_OCR":                     ("Rotenone/Antimycin A OCR",      "Residual OCR after complete ETC inhibition."),
@@ -125,7 +137,7 @@ METRIC_LABELS = {
     "Spare_respiratory_capacity":    ("Spare respiratory capacity",     "Reserve capacity (Maximal − Basal respiration)."),
     "Coupling_efficiency":           ("Coupling efficiency",            "Fraction of basal respiration used for ATP production."),
     "RCR_like_metric":               ("RCR-like metric",                "Maximal respiration / Proton leak."),
-    "Basal_ECAR":                    ("Basal ECAR",                     "Extracellular acidification under baseline conditions."),
+    "Basal_ECAR":                    ("Basal ECAR",                     "ECAR at second-to-last baseline cycle (pre-injection reference)."),
     "ECAR_after_oligomycin":         ("ECAR after oligomycin",          "ECAR following ATP synthase inhibition."),
     "Compensatory_glycolysis":       ("Compensatory glycolysis",        "Increase in ECAR after oligomycin."),
 }
