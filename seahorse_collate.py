@@ -207,12 +207,38 @@ def collate_timeseries(directory, mode="normalised"):
         data_dict : { condition: { '_N1': [rep_series, ...], '_N2': [...] } }
         Produces a wide DataFrame with one column per rep, labelled Condition_N<n>,
         using ref_time as the index (Time column).
+
+        All conditions are padded with empty (NaN) columns to match the condition
+        with the most replicates, so every condition has the same number of
+        subcolumns for easy copy-paste into Prism.
         """
+        # Find the maximum total rep count across all conditions
+        max_reps = max(
+            sum(len(reps) for reps in n_dict.values())
+            for n_dict in data_dict.values()
+        )
+
+        n_rows = max(
+            (len(next(iter(n_dict.values()))[0]) for n_dict in data_dict.values()),
+            default=0
+        )
+
         cols = []
         for cond, n_dict in data_dict.items():
+            cond_cols = []
             for n_label, reps in n_dict.items():
                 for rep_series in reps:
-                    cols.append(rep_series.rename(f"{cond}{n_label}"))
+                    cond_cols.append(rep_series.rename(f"{cond}{n_label}"))
+
+            # Pad with empty columns up to max_reps
+            while len(cond_cols) < max_reps:
+                pad_n = len(cond_cols) + 1
+                cond_cols.append(
+                    pd.Series([float("nan")] * n_rows, name=f"{cond}_N{pad_n}_empty")
+                )
+
+            cols.extend(cond_cols)
+
         export_df = pd.concat(cols, axis=1)
         if ref_time is not None:
             export_df.index = ref_time[:len(export_df)]
